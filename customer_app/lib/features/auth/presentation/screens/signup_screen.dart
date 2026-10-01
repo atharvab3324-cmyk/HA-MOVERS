@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../services/api/register_api_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -43,23 +44,45 @@ class _SignupScreenState extends State<SignupScreen> {
       _isLoading = true;
     });
 
-    // Temporary simulation.
-    // Real registration API will be connected later.
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final registerApiService = RegisterApiService();
 
-    if (!mounted) return;
+      final response = await registerApiService.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
+        passwordConfirmation: _confirmPasswordController.text,
+      );
 
-    setState(() {
-      _isLoading = false;
-    });
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Registration API will be connected in the backend phase.',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            response['message']?.toString() ?? 'Registration successful',
+          ),
+          behavior: SnackBarBehavior.floating,
         ),
-      ),
-    );
+      );
+
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -318,8 +341,8 @@ class _SignupScreenState extends State<SignupScreen> {
                             return 'Please create a password';
                           }
 
-                          if (password.length < 6) {
-                            return 'Password must be at least 6 characters';
+                          if (password.length < 8) {
+                            return 'Password must be at least 8 characters';
                           }
 
                           return null;
