@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../services/api/auth_api_service.dart';
+
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
@@ -39,14 +41,37 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    // Temporary login simulation.
-    // Real API authentication will be connected later.
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final authApiService = AuthApiService();
 
-    if (!mounted) return;
+      final response = await authApiService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+      if (!mounted) return;
+
+      if (response['success'] == true) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
