@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../features/auth/presentation/screens/home_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../services/api/token_storage_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -33,15 +35,22 @@ class _SplashScreenState extends State<SplashScreen>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
+    _checkSession();
+  }
 
-    Future.delayed(const Duration(milliseconds: 2800), () {
-      if (!mounted) return;
+  Future<void> _checkSession() async {
+    // Check the saved session while the splash animation plays.
+    final hasToken = await TokenStorageService().hasToken();
 
-      // Login screen will be connected here in the next step.
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
-    });
+    // Preserve the original splash duration.
+    await Future.delayed(const Duration(milliseconds: 2800));
+
+    if (!mounted) return;
+
+    final destination = hasToken ? const HomeScreen() : const LoginScreen();
+
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute(builder: (_) => destination));
   }
 
   @override

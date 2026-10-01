@@ -7,11 +7,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
+import 'login_screen.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/fare_config.dart';
 import '../../../../core/utils/fare_calculator.dart';
 import '../../../../core/utils/route_calculator.dart';
 import '../../../../core/utils/geocoding_service.dart';
+import '../../../../services/api/token_storage_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -122,7 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // ============================================================
   // TOP BAR
   // ============================================================
-
   Widget _buildTopBar(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -137,13 +139,30 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () {},
+          PopupMenuButton<String>(
+            tooltip: 'Menu',
             padding: EdgeInsets.zero,
             icon: Icon(
               Icons.menu_rounded,
               color: isDark ? Colors.white : AppColors.primaryText,
             ),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _showLogoutDialog();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout_rounded, color: AppColors.error),
+                    SizedBox(width: 10),
+                    Text('Logout'),
+                  ],
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(width: 8),
@@ -1546,6 +1565,58 @@ class _HomeScreenState extends State<HomeScreen> {
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
 
     return 'HA${timestamp.substring(timestamp.length - 8)}';
+  }
+
+  // LOGOUT DIALOG
+  void _showLogoutDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Logout?'),
+          content: const Text(
+            'Are you sure you want to log out of your account?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await _logout();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // LOGOUT FUNCTION
+  Future<void> _logout() async {
+    try {
+      await TokenStorageService().deleteToken();
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to log out. Please try again.')),
+      );
+    }
   }
 }
 

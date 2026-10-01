@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../services/api/auth_api_service.dart';
+import '../../../../services/api/token_storage_service.dart';
 
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
@@ -52,6 +53,18 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (response['success'] == true) {
+        final token = response['token'];
+
+        if (token == null || token.toString().isEmpty) {
+          throw Exception(
+            'Login succeeded, but no authentication token was received.',
+          );
+        }
+
+        await TokenStorageService().saveToken(token.toString());
+
+        if (!mounted) return;
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
